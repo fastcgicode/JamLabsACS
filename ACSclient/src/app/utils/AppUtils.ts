@@ -40,9 +40,3 @@ export const isSmallScreen = (): boolean => window.innerWidth < 700 || window.in
 export const navigateToHomePage = (): void => {
   window.location.href = window.location.href.split('?')[0];
 };
-
-declare let __BUILDTIME__: string; // Injected by webpack
-export const buildTime = __BUILDTIME__;
-
-declare let __CALLINGVERSION__: string; // Injected by webpack
-export const callingSDKVersion = __CALLINGVERSION__;

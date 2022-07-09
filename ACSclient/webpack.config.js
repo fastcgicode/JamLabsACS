@@ -1,10 +1,26 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+﻿module.exports = {
+    entry: "./Scripts/src/index.tsx",
+    output: {
+        filename: "./Scripts/dist/bundle.js",
+    },
 
-/* eslint-disable @typescript-eslint/no-var-requires */
+    // Enable sourcemaps for debugging webpack's output.
+    devtool: "source-map",
 
-module.exports = (env) => {
-  const babelConfig = require('./.babelrc.js');
-  const commonConfig = require('./common.webpack.config')(__dirname, env, babelConfig);
-  return commonConfig;
-};
+    resolve: {
+        // Add '.ts' and '.tsx' as resolvable extensions.
+        extensions: ["", ".webpack.js", ".web.js", ".ts", ".tsx", ".js"]
+    },
+
+    module: {
+        loaders: [
+            // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
+            { test: /\.tsx?$/, loader: "ts-loader" }
+        ],
+
+        preLoaders: [
+            // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
+            { test: /\.js$/, loader: "source-map-loader" }
+        ]
+    }
+}

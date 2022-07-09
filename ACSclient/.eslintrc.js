@@ -15,7 +15,6 @@ module.exports = {
     'plugin:react-hooks/recommended'
   ],
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'header'],
   parserOptions: {
     ecmaFeatures: {
       jsx: true
@@ -24,6 +23,7 @@ module.exports = {
     sourceType: 'module'
   },
   rules: {
+    'prettier/prettier': 0,
     '@typescript-eslint/explicit-function-return-type': [
       'warn',
       {
@@ -32,10 +32,8 @@ module.exports = {
       }
     ],
     eqeqeq: 'warn',
-    'header/header': ['error', 'line', ' Copyright (c) Microsoft Corporation.\n Licensed under the MIT license.'],
     'react/display-name': 'off',
-    '@typescript-eslint/no-explicit-any': 'error',
-    '@typescript-eslint/no-unused-vars': ['warn', { varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': 0,
     curly: 'error'
   },
   settings: {

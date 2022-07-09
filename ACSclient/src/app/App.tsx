@@ -20,7 +20,7 @@ initializeIcons();
 type AppPages = 'home' | 'call' | 'endCall';
 
 const webAppTitle = document.title;
-const joiningExistingCall: boolean = !!getGroupIdFromUrl();
+const joiningExistingCall = !!getGroupIdFromUrl();
 
 export interface AppProps {
   acsID: string;
@@ -58,6 +58,7 @@ const App = (props: AppProps): JSX.Element => {
       );
     }
     case 'endCall': {
+      break;
     }
     case 'call': {
       return (
@@ -75,6 +76,7 @@ const App = (props: AppProps): JSX.Element => {
       document.title = `error - ${webAppTitle}`;
       return <>Invalid page</>;
   }
+  return <></>;
 };
 
 export default App;
