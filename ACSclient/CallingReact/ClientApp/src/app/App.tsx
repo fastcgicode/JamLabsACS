@@ -26,6 +26,7 @@ import {
   headerStyle,
   buttonStyle
 } from './styles/HomeScreen.styles';
+import { GetAcsUsers } from './api';
 import { useSwitchableFluentTheme } from './theming/SwitchableFluentThemeProvider';
 import { createAutoRefreshingCredential } from './utils/credential';
 
@@ -38,6 +39,10 @@ type AppPages = 'home' | 'call' | 'endCall';
 const webAppTitle = document.title;
 const joiningExistingCall = !!getGroupIdFromUrl();
 
+export interface AcsUser {
+  userName: string;
+  connectionId: string;
+}
 export interface AppProps {
   acsID: string;
   acsToken: string;
@@ -48,7 +53,7 @@ const App = (props: AppProps): JSX.Element => {
   const headerTitle = joiningExistingCall ? 'Join Call' : 'Start or join a call';
   const buttonText = 'Start';
   const buttonEnabled = username;
-  const loggedUsers = [];
+  const [loggedUsers, setloggedUsers] = useState<AcsUser[]>([]);
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [page, setPage] = useState<AppPages>('call');
   const [userCredentialFetchError, setUserCredentialFetchError] = useState<boolean>(false);
@@ -62,31 +67,28 @@ const App = (props: AppProps): JSX.Element => {
   const adapterRef = useRef<CallAdapter>();
 
   connection.start().catch((err) => alert(err));
-
-  connection.on("inviteReceived", (from: string, groupId: string) => {
-    alert(`Invitation from ${from}`);
-    setGroup(groupId);
-  });
-  connection.on("availableReceived", (user: string, connectionId: string) => {
-    alert(user+" is available")
-    loggedUsers.push({ connectionId: connectionId, username: user }); console.log(loggedUsers)
-  });
-  connection.on("unavailableReceived", (user: string, connectionId: string) => {
-    alert(user+" is unavailable")
-  });
-
-  const available = () => {
-    connection.send("available", username);
-  };
-  const unavailable = () => {
-    connection.send("unavailable", username);
-  };
-  const invite = (user) => {
-    connection.send("invite", loggedUsers.find(u=>u.username==user).connectionId, username, callLocator.groupId);
-  };
-
   useEffect(() => {
     (async () => {
+        const availableusers: AcsUser[] = [];
+        GetAcsUsers().then(
+          (logsusers: AcsUser[]) => {
+            logsusers.map((user) => {
+              availableusers.push({ userName: user.userName, connectionId: user.connectionId });
+            });
+            setloggedUsers(availableusers);
+          });
+      connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
+        if (user == username) {
+          alert(`Invitation from ${from}`);
+          setGroup(groupId);
+        }
+      });
+      connection.on("availableReceived", (user: string, connectionId: string) => {
+        alert(user + " is available");
+      });
+      connection.on("unavailableReceived", (user: string, connectionId: string) => {
+        alert(user + " is unavailable")
+      });
       const adapter = await createAzureCommunicationCallAdapter({
         userId,
         displayName,
@@ -118,6 +120,16 @@ const App = (props: AppProps): JSX.Element => {
     return <Spinner label={'Creating adapter'} ariaLive="assertive" labelPosition="top" />;
   }
 
+  const available = () => {
+    connection.send("available", username);
+  };
+  const unavailable = () => {
+    connection.send("unavailable", username);
+  };
+  const invite = (user) => {
+    connection.send("invite", user, username, callLocator.groupId);
+  };
+
   switch (page) {
     case 'home': {
       document.title = `home - ${webAppTitle}`;
@@ -129,11 +141,6 @@ const App = (props: AppProps): JSX.Element => {
           verticalAlign="center"
           tokens={containerTokens}
           className={containerStyle}>
-          <Stack className={infoContainerStyle}>
-            <Text role={'heading'} aria-level={1} className={headerStyle}>
-              {headerTitle}
-            </Text>
-          </Stack>
         </Stack>
       </Stack>
       );
@@ -165,6 +172,15 @@ const App = (props: AppProps): JSX.Element => {
               setPage('call');
             }}
           />
+          <Stack><h3>Available:</h3>{loggedUsers.map(listitem => (<PrimaryButton
+            text={listitem.userName}
+            key={listitem.userName}
+            onClick={() => {
+              invite(listitem.userName);
+            }}>
+          </PrimaryButton>
+          ))}
+          </Stack>
         </Stack>
         <CallComposite
           adapter={adapter}
@@ -172,20 +188,6 @@ const App = (props: AppProps): JSX.Element => {
           rtl={currentRtl}
           callInvitationUrl={window.location.href}
           formFactor='desktop' />
-        <Stack>
-          <PrimaryButton
-            text='Alex'
-            onClick={() => {
-              invite('alex@anabelessaiegmail.onmicrosoft.com');
-            }}
-          />
-          <PrimaryButton
-            text='Alma'
-            onClick={() => {
-              invite('alma@anabelessaiegmail.onmicrosoft.com');
-            }}
-          />
-        </Stack>
       </Stack>
       );
     }

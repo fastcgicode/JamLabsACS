@@ -5,7 +5,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using CallingReact.Hubs;
+using CallingReact.Models;
 
 namespace CallingReact
 {
@@ -24,6 +26,8 @@ namespace CallingReact
 
             services.AddControllersWithViews();
             services.AddSignalR();
+            services.AddDbContext<AcsUserContext>(options =>
+                    options.UseSqlServer(Configuration.GetConnectionString("AcsUserContext")));
 
             // In production, the React files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
