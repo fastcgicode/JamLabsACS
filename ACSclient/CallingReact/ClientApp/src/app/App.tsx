@@ -28,15 +28,14 @@ import {
 } from './styles/HomeScreen.styles';
 import { GetAcsUsers } from './api';
 import { useSwitchableFluentTheme } from './theming/SwitchableFluentThemeProvider';
+import { v1 as generateGUID } from 'uuid';
 import { createAutoRefreshingCredential } from './utils/credential';
 
-const alex = "8:acs:6a98df63-9bde-4af3-8c1b-8c76a9266a99_00000012-667e-bbe2-e3c7-593a0d004d99";
-const alma = "8:acs:6a98df63-9bde-4af3-8c1b-8c76a9266a99_00000012-6687-ce3f-2c8a-084822004d53";
 initializeIcons();
 
 type AppPages = 'home' | 'call' | 'endCall';
 
-const webAppTitle = document.title;
+const webAppTitle = "ACS Video Conference";
 const joiningExistingCall = !!getGroupIdFromUrl();
 
 export interface AcsUser {
@@ -50,13 +49,9 @@ export interface AppProps {
 }
 const App = (props: AppProps): JSX.Element => {
   const { acsID, acsToken, username } = props;
-  const headerTitle = joiningExistingCall ? 'Join Call' : 'Start or join a call';
-  const buttonText = 'Start';
-  const buttonEnabled = username;
-  const [loggedUsers, setloggedUsers] = useState<AcsUser[]>([]);
+  const [loggedUsers, setloggedUsers] = useState<string[]>([]);
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [page, setPage] = useState<AppPages>('call');
-  const [userCredentialFetchError, setUserCredentialFetchError] = useState<boolean>(false);
   const [callLocator, setCallLocator] = useState<GroupLocator>(getGroupIdFromUrl() || createGroupId());
   const [adapter, setAdapter] = useState<CallAdapter>();
   const [groupId, setGroup] = useState<string>();
@@ -66,17 +61,20 @@ const App = (props: AppProps): JSX.Element => {
   const callIdRef = useRef<string>();
   const adapterRef = useRef<CallAdapter>();
 
+  const updateAvailable = () => {
+    let availableusers: string[] = [];
+    GetAcsUsers().then(
+      (users: AcsUser[]) => {
+        users.map((user) => {
+          availableusers.push(user.userName);
+        });
+        setloggedUsers(availableusers);
+      });
+  }
   connection.start().catch((err) => alert(err));
   useEffect(() => {
     (async () => {
-        const availableusers: AcsUser[] = [];
-        GetAcsUsers().then(
-          (logsusers: AcsUser[]) => {
-            logsusers.map((user) => {
-              availableusers.push({ userName: user.userName, connectionId: user.connectionId });
-            });
-            setloggedUsers(availableusers);
-          });
+      updateAvailable();
       connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
         if (user == username) {
           alert(`Invitation from ${from}`);
@@ -84,10 +82,12 @@ const App = (props: AppProps): JSX.Element => {
         }
       });
       connection.on("availableReceived", (user: string, connectionId: string) => {
-        alert(user + " is available");
+        alert(user + " is available"); 
+        updateAvailable();
       });
       connection.on("unavailableReceived", (user: string, connectionId: string) => {
-        alert(user + " is unavailable")
+        alert(user + " is unavailable");
+        updateAvailable();
       });
       const adapter = await createAzureCommunicationCallAdapter({
         userId,
@@ -172,14 +172,18 @@ const App = (props: AppProps): JSX.Element => {
               setPage('call');
             }}
           />
-          <Stack><h3>Available:</h3>{loggedUsers.map(listitem => (<PrimaryButton
-            text={listitem.userName}
-            key={listitem.userName}
-            onClick={() => {
-              invite(listitem.userName);
-            }}>
-          </PrimaryButton>
-          ))}
+          <Stack><h3>Available:</h3>
+            {
+              loggedUsers.map(listitem => (
+                <PrimaryButton
+                  text={listitem}
+                  key={generateGUID()}
+                  onClick={() => {
+                    invite(listitem);
+                  }}>
+                </PrimaryButton>
+              ))
+            }
           </Stack>
         </Stack>
         <CallComposite

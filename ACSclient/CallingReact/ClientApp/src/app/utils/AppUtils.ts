@@ -1,8 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { GroupLocator } from '@azure/communication-calling';
+import { GroupLocator, TeamsMeetingLinkLocator } from '@azure/communication-calling';
 import { v1 as generateGUID } from 'uuid';
+
+/**
+ * Get ACS user token from the Contoso server.
+ */
+export const fetchTokenResponse = async (): Promise<any> => {
+  const response = await fetch('http://localhost:8080/token?scope=voip');
+  if (response.ok) {
+    const responseAsJson = await response.json(); //(await response.json())?.value?.token;
+    const token = responseAsJson.token;
+    if (token) {
+      return responseAsJson;
+    }
+  }
+  throw 'Invalid token response';
+};
 
 /**
  * Generate a random user name.
@@ -20,6 +35,15 @@ export const getGroupIdFromUrl = (): GroupLocator | undefined => {
 };
 
 export const createGroupId = (): GroupLocator => ({ groupId: generateGUID() });
+
+/**
+ * Get teams meeting link from the url's query params.
+ */
+export const getTeamsLinkFromUrl = (): TeamsMeetingLinkLocator | undefined => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const teamsLink = urlParams.get('teamsLink');
+  return teamsLink ? { meetingLink: teamsLink } : undefined;
+};
 
 /*
  * TODO:

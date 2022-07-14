@@ -10,6 +10,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { msalConfig } from "./authConfig";
+import { fetchTokenResponse } from './app/utils/AppUtils';
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
 import { PageLayout } from "./components/Msal/PageLayout";
 import Button from "react-bootstrap/Button";
@@ -30,18 +31,30 @@ const ProfileContent = () => {
         account: accounts[0]
       })
       .then((response) => {
+        const mode = "prod";
         if (response.account) {
           setUsername(response.account.username);
         }
-        CreateOrGetACSUser(response.accessToken)
-          .then(() => {
-            GetAcsToken(response.accessToken)
-              .then((message) => {
-                setAcsToken(message.token);
-                setId(message.user.id);
-              });
-          })
-          .catch((error) => console.log(error));
+        if (mode == "prod") {
+          CreateOrGetACSUser(response.accessToken)
+            .then(() => {
+              GetAcsToken(response.accessToken)
+                .then((message) => {
+                  setAcsToken(message.token);
+                  setId(message.user.id);
+                });
+            })
+            .catch((error) => console.log(error));
+        } else {
+          try {
+            fetchTokenResponse().then(({token, user}) => {
+              setAcsToken(token);
+              setId(user.communicationUserId);
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
       });
   }
   if (acsID) {
