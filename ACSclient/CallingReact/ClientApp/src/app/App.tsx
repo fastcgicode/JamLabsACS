@@ -84,7 +84,13 @@ const App = (props: AppProps): JSX.Element => {
   const invite = async (user) => {
     await connection.send("invite", user, username, callLocator.groupId);
   };
-  available().then(() => updateAvailable());
+  const changetoggle = async (checked)=>{
+                  if (checked){
+                    available();
+                  }else{
+                    unavailable();}
+                    updateAvailable();}
+  ///available().then(() => updateAvailable());
 
   useEffect(() => {
     (async () => {
@@ -118,11 +124,11 @@ const App = (props: AppProps): JSX.Element => {
       setAdapter(adapter);
       adapterRef.current = adapter;
       window.addEventListener("beforeunload", function (e) {
-        unavailable();
+        ///unavailable();
       }, false);
     })();
     return () => {
-      unavailable();
+      ///unavailable();
       adapterRef?.current?.dispose();
     };
   }, [callLocator, username, acsToken, acsID]);
@@ -151,15 +157,12 @@ const App = (props: AppProps): JSX.Element => {
       return (
         <Stack horizontal verticalFill disableShrink>
             <Stack verticalFill disableShrink>
-            <Toggle inlineLabel defaultChecked
+            <Toggle inlineLabel
               onText="Available"
               offText="Unavailable"
               onChange={
-                (ev: React.MouseEvent<HTMLElement>, checked?: boolean) => {
-                  if (checked)
-                    unavailable();
-                  else
-                    available();
+                (ev: React.MouseEvent<HTMLElement>, checked: boolean) => {
+                  changetoggle(checked);
                 }}>
             </Toggle>
             </Stack>
