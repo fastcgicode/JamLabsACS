@@ -9,10 +9,12 @@ import {
   CallAdapterState,
   CallComposite,
   createAzureCommunicationCallAdapter,
-  toFlatCommunicationIdentifier
+  toFlatCommunicationIdentifier,
+  ParticipantItem,
+  ParticipantItemProps
 } from '@azure/communication-react';
-import { initializeIcons, Spinner, PrimaryButton, Stack, Text, IChoiceGroupOption, ChoiceGroup } from '@fluentui/react';
-import React, { useEffect, useState, useRef } from 'react';
+import { initializeIcons, IContextualMenuItem, PersonaPresence, Spinner, PrimaryButton, Stack, Text, IChoiceGroupOption, ChoiceGroup, Toggle } from '@fluentui/react';
+import React, { useEffect, useState, useRef, ComponentState } from 'react';
 import {
   createGroupId,
   getGroupIdFromUrl,
@@ -29,6 +31,7 @@ import {
 import { GetAcsUsers } from './api';
 import { useSwitchableFluentTheme } from './theming/SwitchableFluentThemeProvider';
 import { v1 as generateGUID } from 'uuid';
+import './App.css'
 import { createAutoRefreshingCredential } from './utils/credential';
 
 initializeIcons();
@@ -41,15 +44,17 @@ const joiningExistingCall = !!getGroupIdFromUrl();
 export interface AcsUser {
   userName: string;
   connectionId: string;
+  name: string;
 }
 export interface AppProps {
+  name: string;
   acsID: string;
   acsToken: string;
   username: string;
 }
 const App = (props: AppProps): JSX.Element => {
-  const { acsID, acsToken, username } = props;
-  const [loggedUsers, setloggedUsers] = useState<string[]>([]);
+  const { acsID, acsToken, username, name } = props;
+  const [loggedUsers, setloggedUsers] = useState<AcsUser[]>([]);
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [page, setPage] = useState<AppPages>('call');
   const [callLocator, setCallLocator] = useState<GroupLocator>(getGroupIdFromUrl() || createGroupId());
@@ -60,33 +65,39 @@ const App = (props: AppProps): JSX.Element => {
   const displayName = username;
   const callIdRef = useRef<string>();
   const adapterRef = useRef<CallAdapter>();
+  document.title = webAppTitle;
 
+  connection.start().catch((err) => alert(err));
   const updateAvailable = () => {
-    let availableusers: string[] = [];
     GetAcsUsers().then(
       (users: AcsUser[]) => {
-        users.map((user) => {
-          availableusers.push(user.userName);
-        });
-        setloggedUsers(availableusers);
+        setloggedUsers(users);
       });
   }
-  connection.start().catch((err) => alert(err));
+
+  const available = async () => {
+    await connection.send("available", username, name);
+  };
+  const unavailable = async () => {
+    await connection.send("unavailable", username);
+  };
+  const invite = async (user) => {
+    await connection.send("invite", user, username, callLocator.groupId);
+  };
+  available().then(() => updateAvailable());
+
   useEffect(() => {
     (async () => {
-      updateAvailable();
       connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
         if (user == username) {
           alert(`Invitation from ${from}`);
           setGroup(groupId);
         }
       });
-      connection.on("availableReceived", (user: string, connectionId: string) => {
-        alert(user + " is available"); 
+      connection.on("availableReceived", (user: string, connectionId: string, name: string) => {
         updateAvailable();
       });
       connection.on("unavailableReceived", (user: string, connectionId: string) => {
-        alert(user + " is unavailable");
         updateAvailable();
       });
       const adapter = await createAzureCommunicationCallAdapter({
@@ -102,16 +113,16 @@ const App = (props: AppProps): JSX.Element => {
         console.log('Adapter error event:', e);
       });
       adapter.onStateChange((state: CallAdapterState) => {
-        const pageTitle = convertPageStateToString(state);
-        document.title = `${pageTitle} - ${webAppTitle}`;
-
         callIdRef.current = state?.call?.id;
       });
       setAdapter(adapter);
       adapterRef.current = adapter;
+      window.addEventListener("beforeunload", function (e) {
+        unavailable();
+      }, false);
     })();
-
     return () => {
+      unavailable();
       adapterRef?.current?.dispose();
     };
   }, [callLocator, username, acsToken, acsID]);
@@ -119,20 +130,8 @@ const App = (props: AppProps): JSX.Element => {
   if (!adapter) {
     return <Spinner label={'Creating adapter'} ariaLive="assertive" labelPosition="top" />;
   }
-
-  const available = () => {
-    connection.send("available", username);
-  };
-  const unavailable = () => {
-    connection.send("unavailable", username);
-  };
-  const invite = (user) => {
-    connection.send("invite", user, username, callLocator.groupId);
-  };
-
   switch (page) {
     case 'home': {
-      document.title = `home - ${webAppTitle}`;
       return (<Stack horizontal verticalFill disableShrink>
         <Stack
           horizontal
@@ -149,54 +148,53 @@ const App = (props: AppProps): JSX.Element => {
       break;
     }
     case 'call': {
-      return (<Stack horizontal verticalFill disableShrink>
-        <Stack>
-          <PrimaryButton
-            text="Available"
-            onClick={() => {
-              available();
-            }}
-          />
-          <PrimaryButton
-            text="Unavailable"
-            onClick={() => {
-              unavailable();
-            }}
-          />
-          <PrimaryButton
-            text="Join"
-            onClick={() => {
-              if (groupId) {
-                setCallLocator({ groupId: groupId });
-              }
-              setPage('call');
-            }}
-          />
-          <Stack><h3>Available:</h3>
-            {
-              loggedUsers.map(listitem => (
-                <PrimaryButton
-                  text={listitem}
-                  key={generateGUID()}
+      return (
+        <Stack horizontal verticalFill disableShrink>
+            <Stack verticalFill disableShrink>
+            <Toggle inlineLabel defaultChecked
+              onText="Available"
+              offText="Unavailable"
+              onChange={
+                (ev: React.MouseEvent<HTMLElement>, checked?: boolean) => {
+                  if (checked)
+                    unavailable();
+                  else
+                    available();
+                }}>
+            </Toggle>
+            </Stack>
+            <Stack verticalFill disableShrink>
+              {
+                loggedUsers.map(listitem => (<ParticipantItem key={generateGUID()}
                   onClick={() => {
-                    invite(listitem);
-                  }}>
-                </PrimaryButton>
-              ))
-            }
+                    invite(listitem.userName);
+                  }}
+                  displayName={listitem.name}
+                  presence={PersonaPresence.online} />
+                ))
+              }
+            </Stack>
+          <CallComposite
+            adapter={adapter}
+            fluentTheme={currentTheme.theme}
+            rtl={currentRtl}
+            callInvitationUrl={window.location.href}
+            formFactor='desktop' />
+          <Stack>
+            <PrimaryButton
+              text="Join"
+              onClick={() => {
+                if (groupId) {
+                  setCallLocator({ groupId: groupId });
+                }
+                setPage('call');
+              }}
+            />
           </Stack>
         </Stack>
-        <CallComposite
-          adapter={adapter}
-          fluentTheme={currentTheme.theme}
-          rtl={currentRtl}
-          callInvitationUrl={window.location.href}
-          formFactor='desktop' />
-      </Stack>
       );
     }
     default:
-      document.title = `error - ${webAppTitle}`;
       return <>Invalid page</>;
   }
   return <></>;

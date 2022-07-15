@@ -21,6 +21,7 @@ const ProfileContent = () => {
   const { instance, accounts } = useMsal();
   const [acsID, setId] = useState('');
   const [acsToken, setAcsToken] = useState('');
+  const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   async function RequestProfileData() {
     instance
@@ -34,6 +35,7 @@ const ProfileContent = () => {
         const mode = "prod";
         if (response.account) {
           setUsername(response.account.username);
+          setName(accounts[0].name);
         }
         if (mode == "prod") {
           CreateOrGetACSUser(response.accessToken)
@@ -60,7 +62,7 @@ const ProfileContent = () => {
   if (acsID) {
     return (
       <>
-        <App acsID={acsID} acsToken={acsToken} username={username} />
+        <App acsID={acsID} acsToken={acsToken} username={username} name={name} />
       </>
     );
   } else {

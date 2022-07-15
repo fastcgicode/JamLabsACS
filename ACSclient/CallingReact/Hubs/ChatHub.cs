@@ -19,7 +19,7 @@ namespace CallingReact.Hubs
         {
             await Clients.All.SendAsync("inviteReceived", user, from, groupId);
         }
-        public async Task available(string username)
+        public async Task available(string username, string name)
         {
             await Clients.All.SendAsync("availableReceived", username, Context.ConnectionId);
             if (_context != null)
@@ -27,6 +27,7 @@ namespace CallingReact.Hubs
                 AcsUser u = new AcsUser();
                 u.connectionId = Context.ConnectionId;
                 u.userName = username;
+                u.name=name;
                 _context.AcsUsers.Add(u);
                 await _context.SaveChangesAsync();
             }

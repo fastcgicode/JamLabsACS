@@ -21,10 +21,12 @@ namespace CallingReact.Migrations
             modelBuilder.Entity("CallingReact.Models.AcsUser", b =>
                 {
                     b.Property<string>("userName")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("connectionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("name")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("userName");

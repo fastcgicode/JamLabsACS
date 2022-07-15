@@ -9,5 +9,6 @@ namespace CallingReact.Models
         [Key]
         public string userName { get; set; }
         public string connectionId { get; set; }
+        public string name { get; set; }
     }
 }

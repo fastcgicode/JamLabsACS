@@ -1,0 +1,16 @@
+Stack {
+    border: solid white 1px !important;
+}
+
+.side-right{
+    border: solid white 1px;
+    width: 100px;
+    height: 100%;
+    display: inline-block !important;
+    vertical-align: top;
+    float: right;
+}
+
+.screen{
+    display: inline-block !important;
+}
