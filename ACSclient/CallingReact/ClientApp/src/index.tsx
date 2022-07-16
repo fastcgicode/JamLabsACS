@@ -26,7 +26,6 @@ export interface AcsUser {
   name: string;
 }
 const msalInstance = new PublicClientApplication(msalConfig);
-const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
 const ProfileContent = () => {
   const { instance, accounts } = useMsal();
   const [groupId, setGroup] = useState<string>();
@@ -36,8 +35,9 @@ const ProfileContent = () => {
   const [acsToken, setAcsToken] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
+  connection.start().catch((err) => alert(err));
   async function RequestProfileData() {
-    connection.start().catch((err) => alert(err));
     const updateAvailableUsers = () => {
       GetAcsUsers().then(
         (users: AcsUser[]) => {
@@ -70,8 +70,9 @@ const ProfileContent = () => {
         if (response.account) {
           setUsername(response.account.username);
           setName(accounts[0].name);
+          connection.send("available", response.account.username, accounts[0].name);
         }
-        if (mode == "prod") {
+        if (mode != "prod") {
           CreateOrGetACSUser(response.accessToken)
             .then(() => {
               GetAcsToken(response.accessToken)

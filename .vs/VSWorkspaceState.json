@@ -1,6 +1,9 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\ACSclient",
+    "\\ACSclient\\CallingReact"
   ],
+  "SelectedNode": "\\ACSclient\\CallingReact",
   "PreviewInSolutionExplorer": false
 }

@@ -90,18 +90,18 @@ const App = (props: AppProps): JSX.Element => {
   return (
     <Stack horizontal verticalFill disableShrink>
       <Stack verticalFill disableShrink>
-        <PrimaryButton
-          text="Available"
-          onClick={() => {
-            userAvailableHandler();
-          }}
-        />
-        <PrimaryButton
-          text="Unavailable"
-          onClick={() => {
-            userUnavailableHandler();
-          }}
-        />
+        <Toggle inlineLabel
+          onText="Available"
+          offText="Unavailable"
+          defaultChecked
+          onChange={
+            (ev: React.MouseEvent<HTMLElement>, checked: boolean) => {
+              if (checked)
+                userAvailableHandler();
+              else
+                userUnavailableHandler();
+            }}>
+        </Toggle>
       </Stack>
       <Stack verticalFill disableShrink>
         {
