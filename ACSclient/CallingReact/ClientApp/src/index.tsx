@@ -15,15 +15,49 @@ import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/
 import { PageLayout } from "./components/Msal/PageLayout";
 import Button from "react-bootstrap/Button";
 import { GetAcsToken, CreateOrGetACSUser } from './acsAuthApiCaller';
+import * as signalR from "@microsoft/signalr";
+import { GetAcsUsers } from './app/api';
+import { GroupLocator } from '@azure/communication-calling';
+import { createGroupId, getGroupIdFromUrl, navigateToHomePage } from './app/utils/AppUtils';
 
+export interface AcsUser {
+  userName: string;
+  connectionId: string;
+  name: string;
+}
 const msalInstance = new PublicClientApplication(msalConfig);
+const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
 const ProfileContent = () => {
   const { instance, accounts } = useMsal();
+  const [groupId, setGroup] = useState<string>();
+  const [loggedUsers, setloggedUsers] = useState<AcsUser[]>([]);
+  const [callLocator, setCallLocator] = useState<GroupLocator>(getGroupIdFromUrl() || createGroupId());
   const [acsID, setId] = useState('');
   const [acsToken, setAcsToken] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   async function RequestProfileData() {
+    connection.start().catch((err) => alert(err));
+    const updateAvailableUsers = () => {
+      GetAcsUsers().then(
+        (users: AcsUser[]) => {
+          setloggedUsers(users);
+        });
+    }
+    connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
+      if (user == username) {
+        alert(`Invitation from ${from}`);
+        setGroup(groupId);
+      }
+    });
+    connection.on("availableReceived", (user: string) => {
+      alert(user + " is available");
+      updateAvailableUsers();
+    });
+    connection.on("unavailableReceived", (user: string) => {
+      alert(user + " is unavailable");
+      updateAvailableUsers();
+    });
     instance
       .acquireTokenSilent({
         ...{
@@ -37,7 +71,7 @@ const ProfileContent = () => {
           setUsername(response.account.username);
           setName(accounts[0].name);
         }
-        if (mode == "prod") {
+        if (mode != "prod") {
           CreateOrGetACSUser(response.accessToken)
             .then(() => {
               GetAcsToken(response.accessToken)
@@ -49,7 +83,7 @@ const ProfileContent = () => {
             .catch((error) => console.log(error));
         } else {
           try {
-            fetchTokenResponse().then(({token, user}) => {
+            fetchTokenResponse().then(({ token, user }) => {
               setAcsToken(token);
               setId(user.communicationUserId);
             });
@@ -62,7 +96,21 @@ const ProfileContent = () => {
   if (acsID) {
     return (
       <>
-        <App acsID={acsID} acsToken={acsToken} username={username} name={name} />
+        <App acsID={acsID} acsToken={acsToken} username={username} name={name} callLocator={callLocator}
+          userAvailableHandler={async () => {
+            await connection.send("available", username, name);
+          }}
+          userUnavailableHandler={async () => {
+            await connection.send("unavailable", username);
+          }}
+          inviteHandler={async (user: string) => {
+            await connection.send("invite", user, username, callLocator.groupId);
+          }}
+          joinHandler={async () => {
+            if (groupId) {
+              setCallLocator({ groupId: groupId });
+            }
+          }} loggedUsers={loggedUsers} />
       </>
     );
   } else {
