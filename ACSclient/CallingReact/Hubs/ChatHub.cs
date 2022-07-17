@@ -21,7 +21,7 @@ namespace CallingReact.Hubs
         }
         public async Task available(string username, string name)
         {
-            await Clients.All.SendAsync("availableReceived", username, Context.ConnectionId);
+            await Clients.All.SendAsync("availableReceived", username);
             if (_context != null)
             {
                 AcsUser u = new AcsUser();
@@ -34,7 +34,7 @@ namespace CallingReact.Hubs
         }
         public async Task unavailable(string username)
         {
-            await Clients.All.SendAsync("unavailableReceived", username, Context.ConnectionId);
+            await Clients.All.SendAsync("unavailableReceived", username);
             if (_context != null)
             {
                 var acsUser = await _context.AcsUsers.FindAsync(username);
