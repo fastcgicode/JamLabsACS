@@ -78,7 +78,7 @@ const ProfileContent = () => {
           setName(accounts[0].name);
           connection.send("available", response.account.username, accounts[0].name);
         }
-        if (mode != "prod") {
+        if (mode == "prod") {
           CreateOrGetACSUser(response.accessToken)
             .then(() => {
               GetAcsToken(response.accessToken)
