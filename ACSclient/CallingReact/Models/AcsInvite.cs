@@ -10,7 +10,7 @@ namespace CallingReact.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long id { get; set; }
         public string userName { get; set; }
-        public string from { get; set; }
+        public string invitedUser { get; set; }
         public string groupId { get; set; }
     }
 }

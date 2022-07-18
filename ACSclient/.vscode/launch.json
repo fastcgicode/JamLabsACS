@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/CallingReact/bin/Debug/net5.0/CallingReact.dll",
+            "program": "${workspaceFolder}/CallingReact/bin/Debug/net6.0/CallingReact.dll",
             "args": [],
             "cwd": "${workspaceFolder}/CallingReact",
             "stopAtEntry": false,
@@ -41,7 +41,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/CallingReact/bin/Debug/net5.0/CallingReact.dll",
+            "program": "${workspaceFolder}/CallingReact/bin/Debug/net6.0/CallingReact.dll",
             "args": [],
             "cwd": "${workspaceFolder}/CallingReact",
             "stopAtEntry": false,

@@ -3,27 +3,29 @@
 
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import "bootstrap/dist/css/bootstrap.min.css";
+import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { GroupLocator } from '@azure/communication-calling';
+import Button from "react-bootstrap/Button";
+import * as signalR from "@microsoft/signalr";
+import { msalConfig } from "./authConfig";
+import { GetAcsToken, CreateOrGetACSUser } from './acsAuthApiCaller';
+import { GetAcsUsers } from './app/api';
+import { createGroupId, getGroupIdFromUrl, navigateToHomePage, fetchTokenResponse } from './app/utils/AppUtils';
+import { PageLayout } from "./components/Msal/PageLayout";
+import { SwitchableFluentThemeProvider } from './app/theming/SwitchableFluentThemeProvider';
 import './index.css';
 import App from './app/App';
-import { SwitchableFluentThemeProvider } from './app/theming/SwitchableFluentThemeProvider';
-import "bootstrap/dist/css/bootstrap.min.css";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
-import { msalConfig } from "./authConfig";
-import { fetchTokenResponse } from './app/utils/AppUtils';
-import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
-import { PageLayout } from "./components/Msal/PageLayout";
-import Button from "react-bootstrap/Button";
-import { GetAcsToken, CreateOrGetACSUser } from './acsAuthApiCaller';
-import * as signalR from "@microsoft/signalr";
-import { GetAcsUsers } from './app/api';
-import { GroupLocator } from '@azure/communication-calling';
-import { createGroupId, getGroupIdFromUrl, navigateToHomePage } from './app/utils/AppUtils';
+import Toast from 'react-bootstrap/Toast';
+import ToastContainer from 'react-bootstrap/ToastContainer';
 
 export interface AcsUser {
   userName: string;
   connectionId: string;
   name: string;
+  invitedUser: string;
+  groupId: string;
 }
 const msalInstance = new PublicClientApplication(msalConfig);
 const ProfileContent = () => {
@@ -35,28 +37,32 @@ const ProfileContent = () => {
   const [acsToken, setAcsToken] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [show, setShow] = useState(false);
+  const [showMessage, setShowMessage] = useState('');
   const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
-  connection.start().catch((err) => alert(err));
+  connection.start().catch((err) => {
+    setShow(true); setShowMessage(err);
+  });
   async function RequestProfileData() {
-    const updateAvailableUsers = () => {
-      GetAcsUsers().then(
+    const updateAvailableUsers = (user) => {
+      GetAcsUsers(user).then(
         (users: AcsUser[]) => {
           setloggedUsers(users);
         });
     }
     connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
       if (user == username) {
-        alert(`Invitation from ${from}`);
+        setShow(true); setShowMessage(`Invitation from ${from}`);
         setGroup(groupId);
       }
     });
     connection.on("availableReceived", (user: string) => {
-      alert(user + " is available");
-      updateAvailableUsers();
+      setShow(true); setShowMessage(user + ' is available');
+      updateAvailableUsers(user);
     });
     connection.on("unavailableReceived", (user: string) => {
-      alert(user + " is unavailable");
-      updateAvailableUsers();
+      setShow(true); setShowMessage(user + ' is unavailable');
+      updateAvailableUsers(user);
     });
     instance
       .acquireTokenSilent({
@@ -72,7 +78,7 @@ const ProfileContent = () => {
           setName(accounts[0].name);
           connection.send("available", response.account.username, accounts[0].name);
         }
-        if (mode == "prod") {
+        if (mode != "prod") {
           CreateOrGetACSUser(response.accessToken)
             .then(() => {
               GetAcsToken(response.accessToken)
@@ -105,6 +111,7 @@ const ProfileContent = () => {
             await connection.send("unavailable", username);
           }}
           inviteHandler={async (user: string) => {
+            setShow(true); setShowMessage(user);
             await connection.send("invite", user, username, callLocator.groupId);
           }}
           joinHandler={async () => {
@@ -112,6 +119,11 @@ const ProfileContent = () => {
               setCallLocator({ groupId: groupId });
             }
           }} loggedUsers={loggedUsers} />
+        <ToastContainer position="bottom-start">
+          <Toast onClose={() => setShow(false)} show={show} delay={3000} autohide bg="primary">
+            <Toast.Body>{showMessage}</Toast.Body>
+          </Toast>
+        </ToastContainer>
       </>
     );
   } else {

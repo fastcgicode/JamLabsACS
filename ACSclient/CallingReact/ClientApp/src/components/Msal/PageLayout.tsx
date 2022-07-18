@@ -16,7 +16,7 @@ import { SignOutButton } from "./SignOutButton";
  */
 export interface PageLayoutProps {
     children: any;
-  }
+}
 export const PageLayout = (props: PageLayoutProps) => {
     const { children } = props;
     const isAuthenticated = useIsAuthenticated();
@@ -24,7 +24,10 @@ export const PageLayout = (props: PageLayoutProps) => {
     return (
         <>
             <Navbar>
-                { isAuthenticated ? <SignOutButton /> : <SignInButton /> }
+                <div className="navbar-left">username</div>
+                <div className="navbar-right">
+                    {isAuthenticated ? <SignOutButton /> : <SignInButton />}
+                </div>
             </Navbar>
             {props.children}
         </>

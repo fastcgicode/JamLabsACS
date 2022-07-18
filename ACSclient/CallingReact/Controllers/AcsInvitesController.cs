@@ -21,87 +21,22 @@ namespace CallingReact.Controllers
         }
 
         // GET: api/AcsInvites
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<AcsInvite>>> GetAcsInvite()
-        {
-            return await _context.AcsInvite.ToListAsync();
-        }
-
-        // GET: api/AcsInvites/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<AcsInvite>> GetAcsInvite(long id)
+        public async Task<ActionResult<List<UserInvite>>> GetAcsInvites(string id)
         {
-            var acsInvite = await _context.AcsInvite.FindAsync(id);
+            var r = from users in _context.AcsUsers
+                    join invites in _context.AcsInvites
+                    on users.userName equals invites.userName
+                    where invites.invitedUser==id || invites.invitedUser == ""
+                    select new UserInvite
+                    {
+                        userName = users.userName,
+                        name = users.name,
+                        invitedUser=invites.invitedUser,
+                        groupId = invites.groupId
+                    };
 
-            if (acsInvite == null)
-            {
-                return NotFound();
-            }
-
-            return acsInvite;
-        }
-
-        // PUT: api/AcsInvites/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutAcsInvite(long id, AcsInvite acsInvite)
-        {
-            if (id != acsInvite.id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(acsInvite).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AcsInviteExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/AcsInvites
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<AcsInvite>> PostAcsInvite(AcsInvite acsInvite)
-        {
-            _context.AcsInvite.Add(acsInvite);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetAcsInvite", new { id = acsInvite.id }, acsInvite);
-        }
-
-        // DELETE: api/AcsInvites/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAcsInvite(long id)
-        {
-            var acsInvite = await _context.AcsInvite.FindAsync(id);
-            if (acsInvite == null)
-            {
-                return NotFound();
-            }
-
-            _context.AcsInvite.Remove(acsInvite);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool AcsInviteExists(long id)
-        {
-            return _context.AcsInvite.Any(e => e.id == id);
+            return r.ToList();
         }
     }
 }

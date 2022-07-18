@@ -1,4 +1,4 @@
-export async function GetAcsUsers() {
+export async function GetAcsUsers(username) {
   const headers = new Headers();
 
   const options = {
@@ -6,7 +6,7 @@ export async function GetAcsUsers() {
     headers: headers
   };
 
-  return await fetch('/api/AcsUsers', options)
+  return await fetch('/api/AcsInvites/'+username, options)
     .then((response) => response.json())
     .catch((error) => console.log(error));
 }

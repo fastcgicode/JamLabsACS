@@ -47,7 +47,7 @@ export interface AppProps {
   loggedUsers: any[];
 }
 const App = (props: AppProps): JSX.Element => {
-  const { acsID, acsToken, username, name, callLocator, userAvailableHandler, userUnavailableHandler, inviteHandler, joinHandler,loggedUsers } = props;
+  const { acsID, acsToken, username, name, callLocator, userAvailableHandler, userUnavailableHandler, inviteHandler, joinHandler, loggedUsers } = props;
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [adapter, setAdapter] = useState<CallAdapter>();
   const userId = { communicationUserId: acsID };
@@ -88,47 +88,58 @@ const App = (props: AppProps): JSX.Element => {
     return <Spinner label={'Creating adapter'} ariaLive="assertive" labelPosition="top" />;
   }
   return (
-    <Stack horizontal verticalFill disableShrink>
-      <Stack verticalFill disableShrink>
-        <Toggle inlineLabel
-          onText="Available"
-          offText="Unavailable"
-          defaultChecked
-          onChange={
-            (ev: React.MouseEvent<HTMLElement>, checked: boolean) => {
-              if (checked)
-                userAvailableHandler();
-              else
-                userUnavailableHandler();
-            }}>
-        </Toggle>
+    <div className='align-left'>
+      <Stack horizontal verticalFill disableShrink padding={6} gap={16}>
+        <Stack verticalFill>
+          <Toggle inlineLabel
+            label="Online"
+            defaultChecked
+            onChange={
+              (ev: React.MouseEvent<HTMLElement>, checked: boolean) => {
+                if (checked)
+                  userAvailableHandler();
+                else
+                  userUnavailableHandler();
+              }}>
+          </Toggle>
+        </Stack>
+        <Stack verticalFill disableShrink>
+          <CallComposite
+            adapter={adapter}
+            fluentTheme={currentTheme.theme}
+            rtl={currentRtl}
+            callInvitationUrl={window.location.href}
+            formFactor='desktop' />
+        </Stack>
+        <Stack verticalFill disableShrink>
+          <div className='solid-white'>
+            <div className='participant-title'>Users online:</div>
+            {
+              loggedUsers.map(listitem => (
+                <div className='participant-row'>
+                  <div className='participant-item'>
+                    <ParticipantItem key={generateGUID()}
+                      onClick={() => {
+                        inviteHandler(listitem.userName+generateGUID());
+                      }}
+                      displayName={listitem.name}
+                      presence={PersonaPresence.online} />
+                  </div>
+                  <div className='participant-item'>
+                    <PrimaryButton
+                      text="Join"
+                      onClick={() => {
+                        joinHandler();
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </Stack>
       </Stack>
-      <Stack verticalFill disableShrink>
-        {
-          loggedUsers.map(listitem => (<ParticipantItem key={generateGUID()}
-            onClick={() => {
-              inviteHandler(listitem.userName);
-            }}
-            displayName={listitem.name}
-            presence={PersonaPresence.online} />
-          ))
-        }
-      </Stack>
-      <CallComposite
-        adapter={adapter}
-        fluentTheme={currentTheme.theme}
-        rtl={currentRtl}
-        callInvitationUrl={window.location.href}
-        formFactor='desktop' />
-      <Stack>
-        <PrimaryButton
-          text="Join"
-          onClick={() => {
-            joinHandler();
-          }}
-        />
-      </Stack>
-    </Stack>
+    </div>
   );
 }
 

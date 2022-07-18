@@ -18,6 +18,12 @@ namespace CallingReact.Hubs
         public async Task invite(string user, string from, string groupId)
         {
             await Clients.All.SendAsync("inviteReceived", user, from, groupId);
+            AcsInvite i = new AcsInvite();
+            i.userName = from;
+            i.invitedUser = user;
+            i.groupId = groupId;
+            _context.AcsInvites.Add(i);
+            await _context.SaveChangesAsync();
         }
         public async Task available(string username, string name)
         {
@@ -27,7 +33,7 @@ namespace CallingReact.Hubs
                 AcsUser u = new AcsUser();
                 u.connectionId = Context.ConnectionId;
                 u.userName = username;
-                u.name=name;
+                u.name = name;
                 _context.AcsUsers.Add(u);
                 await _context.SaveChangesAsync();
             }
