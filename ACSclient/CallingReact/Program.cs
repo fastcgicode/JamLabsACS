@@ -22,7 +22,7 @@ namespace CallingReact
                 var services = scope.ServiceProvider;
                 try
                 {
-                    var context = services.GetRequiredService<AcsUserContext>();
+                    var context = services.GetRequiredService<UserInvitesContext>();
                     context.Database.EnsureCreated();
                 }
                 catch (Exception ex)

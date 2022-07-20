@@ -9,24 +9,11 @@ import {
   CallComposite,
   createAzureCommunicationCallAdapter,
   toFlatCommunicationIdentifier,
-  ParticipantItem,
-  ParticipantItemProps
+  ParticipantItem
 } from '@azure/communication-react';
-import { initializeIcons, PersonaPresence, Spinner, PrimaryButton, Stack, Text, IChoiceGroupOption, ChoiceGroup, Toggle } from '@fluentui/react';
+import { initializeIcons, PersonaPresence, Spinner, PrimaryButton, Stack, Text, Toggle } from '@fluentui/react';
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  createGroupId,
-  getGroupIdFromUrl,
-  navigateToHomePage
-} from './utils/AppUtils';
-import {
-  imgStyle,
-  infoContainerStyle,
-  containerStyle,
-  containerTokens,
-  headerStyle,
-  buttonStyle
-} from './styles/HomeScreen.styles';
+import { navigateToHomePage } from './utils/AppUtils';
 import { useSwitchableFluentTheme } from './theming/SwitchableFluentThemeProvider';
 import { v1 as generateGUID } from 'uuid';
 import './App.css'
@@ -39,29 +26,31 @@ export interface AppProps {
   acsID: string;
   acsToken: string;
   username: string;
-  callLocator: GroupLocator;
-  userAvailableHandler(): void;
-  userUnavailableHandler(): void;
-  inviteHandler(userName: string): void;
-  joinHandler(): void;
+  group_id: string;
+  userAvailableHandler(userName: string, name: string): void;
+  userUnavailableHandler(userName: string): void;
+  inviteHandler(username: string, shortname: string, invitedUser: string, groupId: string): void;
+  updateHandler(): void;
   loggedUsers: any[];
 }
 const App = (props: AppProps): JSX.Element => {
-  const { acsID, acsToken, username, name, callLocator, userAvailableHandler, userUnavailableHandler, inviteHandler, joinHandler, loggedUsers } = props;
+  const { acsID, acsToken, username, name, group_id, userAvailableHandler, userUnavailableHandler, inviteHandler, updateHandler, loggedUsers } = props;
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [adapter, setAdapter] = useState<CallAdapter>();
+  const [userName, setUserName] = useState<string>(username);
+  const [shortname, setName] = useState<string>(name);
+  const [groupId, setGroupId] = useState<string>(group_id);
   const userId = { communicationUserId: acsID };
   const displayName = username;
   const callIdRef = useRef<string>();
   const adapterRef = useRef<CallAdapter>();
-
   useEffect(() => {
     (async () => {
       const adapter = await createAzureCommunicationCallAdapter({
         userId,
         displayName,
         credential: createAutoRefreshingCredential(toFlatCommunicationIdentifier(userId), acsToken),
-        locator: callLocator
+        locator: { groupId: groupId }
       });
       adapter.on('callEnded', () => {
         console.log("");
@@ -76,13 +65,31 @@ const App = (props: AppProps): JSX.Element => {
       adapterRef.current = adapter;
     })();
     return () => {
-      userUnavailableHandler();
       adapterRef?.current?.dispose();
     };
-  }, [callLocator]);
+  }, [groupId]);
   window.addEventListener("beforeunload", function (e) {
-    userUnavailableHandler();
+    userUnavailableHandler(userName);
   }, false);
+  //////userAvailableHandler(username, shortname);
+
+  function filterUsersList(userslist, username) {
+    let list = [];
+    for (var c = 0; c < userslist.length; c++) {
+      let un = userslist[c].userName;
+      let length = userslist.filter(i => i.userName == un).length;
+      if (length == 1) {
+        list.push(userslist[c]);
+      } else {
+        if (userslist[c].invitedUser == username) {
+          list.push(userslist[c]);
+        } else if (userslist.filter(i => i.invitedUser == username && i.userName == un).length == 0 && userslist[c].invitedUser == "") {
+          list.push(userslist[c]);
+        }
+      }
+    }
+    return list;
+  }
 
   if (!adapter) {
     return <Spinner label={'Creating adapter'} ariaLive="assertive" labelPosition="top" />;
@@ -90,16 +97,16 @@ const App = (props: AppProps): JSX.Element => {
   return (
     <div className='align-left'>
       <Stack horizontal verticalFill disableShrink padding={6} gap={16}>
-        <Stack verticalFill>
+        <Stack verticalFill>{name}
           <Toggle inlineLabel
             label="Online"
             defaultChecked
             onChange={
               (ev: React.MouseEvent<HTMLElement>, checked: boolean) => {
                 if (checked)
-                  userAvailableHandler();
+                  userAvailableHandler(userName, shortname);
                 else
-                  userUnavailableHandler();
+                  userUnavailableHandler(userName);
               }}>
           </Toggle>
         </Stack>
@@ -115,21 +122,22 @@ const App = (props: AppProps): JSX.Element => {
           <div className='solid-white'>
             <div className='participant-title'>Users online:</div>
             {
-              loggedUsers.map(listitem => (
+              filterUsersList(loggedUsers, userName).map(listitem => (
                 <div className='participant-row'>
                   <div className='participant-item'>
                     <ParticipantItem key={generateGUID()}
                       onClick={() => {
-                        inviteHandler(listitem.userName+generateGUID());
+                        inviteHandler(userName, shortname, listitem.userName, groupId);
                       }}
                       displayName={listitem.name}
                       presence={PersonaPresence.online} />
                   </div>
                   <div className='participant-item'>
                     <PrimaryButton
+                      disabled={!listitem.groupId}
                       text="Join"
                       onClick={() => {
-                        joinHandler();
+                        setGroupId(listitem.groupId)
                       }}
                     />
                   </div>

@@ -26,7 +26,7 @@ namespace CallingReact
 
             services.AddControllersWithViews();
             services.AddSignalR();
-            services.AddDbContext<AcsUserContext>(options =>
+            services.AddDbContext<UserInvitesContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("AcsUserContext")));
 
             // In production, the React files will be served from this directory

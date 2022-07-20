@@ -11,7 +11,7 @@ import Button from "react-bootstrap/Button";
 import * as signalR from "@microsoft/signalr";
 import { msalConfig } from "./authConfig";
 import { GetAcsToken, CreateOrGetACSUser } from './acsAuthApiCaller';
-import { GetAcsUsers } from './app/api';
+import { CallUserInvites, CallAvailable, CallUnavailable, CallInvite } from './app/api';
 import { createGroupId, getGroupIdFromUrl, navigateToHomePage, fetchTokenResponse } from './app/utils/AppUtils';
 import { PageLayout } from "./components/Msal/PageLayout";
 import { SwitchableFluentThemeProvider } from './app/theming/SwitchableFluentThemeProvider';
@@ -22,7 +22,6 @@ import ToastContainer from 'react-bootstrap/ToastContainer';
 
 export interface AcsUser {
   userName: string;
-  connectionId: string;
   name: string;
   invitedUser: string;
   groupId: string;
@@ -30,7 +29,6 @@ export interface AcsUser {
 const msalInstance = new PublicClientApplication(msalConfig);
 const ProfileContent = () => {
   const { instance, accounts } = useMsal();
-  const [groupId, setGroup] = useState<string>();
   const [loggedUsers, setloggedUsers] = useState<AcsUser[]>([]);
   const [callLocator, setCallLocator] = useState<GroupLocator>(getGroupIdFromUrl() || createGroupId());
   const [acsID, setId] = useState('');
@@ -43,26 +41,24 @@ const ProfileContent = () => {
   connection.start().catch((err) => {
     setShow(true); setShowMessage(err);
   });
+  const updateAvailableUsers = () => {
+    CallUserInvites().then(
+      (users: AcsUser[]) => {
+        setloggedUsers(users);
+      });
+  }
   async function RequestProfileData() {
-    const updateAvailableUsers = (user) => {
-      GetAcsUsers(user).then(
-        (users: AcsUser[]) => {
-          setloggedUsers(users);
-        });
-    }
     connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
-      if (user == username) {
-        setShow(true); setShowMessage(`Invitation from ${from}`);
-        setGroup(groupId);
-      }
+      updateAvailableUsers();
+      setShow(true); setShowMessage(`Invitation from ${from}`);
     });
     connection.on("availableReceived", (user: string) => {
+      updateAvailableUsers();
       setShow(true); setShowMessage(user + ' is available');
-      updateAvailableUsers(user);
     });
     connection.on("unavailableReceived", (user: string) => {
+      updateAvailableUsers();
       setShow(true); setShowMessage(user + ' is unavailable');
-      updateAvailableUsers(user);
     });
     instance
       .acquireTokenSilent({
@@ -76,7 +72,9 @@ const ProfileContent = () => {
         if (response.account) {
           setUsername(response.account.username);
           setName(accounts[0].name);
-          connection.send("available", response.account.username, accounts[0].name);
+          CallAvailable(response.account.username, accounts[0].name).then(async () => {
+            await connection.send("available", response.account.username, accounts[0].name);
+          });
         }
         if (mode == "prod") {
           CreateOrGetACSUser(response.accessToken)
@@ -103,22 +101,26 @@ const ProfileContent = () => {
   if (acsID) {
     return (
       <>
-        <App acsID={acsID} acsToken={acsToken} username={username} name={name} callLocator={callLocator}
-          userAvailableHandler={async () => {
-            await connection.send("available", username, name);
+        <App acsID={acsID} acsToken={acsToken} username={username} name={name} group_id={callLocator.groupId}
+          userAvailableHandler={async (username, name) => {
+            CallAvailable(username, name).then(async () => {
+              await connection.send("available", username, name);
+            });
           }}
-          userUnavailableHandler={async () => {
-            await connection.send("unavailable", username);
+          userUnavailableHandler={async (username) => {
+            CallUnavailable(username).then(async () => {
+              await connection.send("unavailable", username);
+            });
           }}
-          inviteHandler={async (user: string) => {
-            setShow(true); setShowMessage(user);
-            await connection.send("invite", user, username, callLocator.groupId);
+          inviteHandler={async (username: string, name: string, invitedUser: string, groupId: string) => {
+            CallInvite(username, name, invitedUser, groupId).then(async () => {
+              await connection.send("invite", invitedUser, name, username, callLocator.groupId);
+            });
           }}
-          joinHandler={async () => {
-            if (groupId) {
-              setCallLocator({ groupId: groupId });
-            }
-          }} loggedUsers={loggedUsers} />
+          updateHandler={() => {
+            updateAvailableUsers();
+          }}
+          loggedUsers={loggedUsers} />
         <ToastContainer position="bottom-start">
           <Toast onClose={() => setShow(false)} show={show} delay={3000} autohide bg="primary">
             <Toast.Body>{showMessage}</Toast.Body>

@@ -24,7 +24,7 @@ export const PageLayout = (props: PageLayoutProps) => {
     return (
         <>
             <Navbar>
-                <div className="navbar-left">username</div>
+                <div className="navbar-left"></div>
                 <div className="navbar-right">
                     {isAuthenticated ? <SignOutButton /> : <SignInButton />}
                 </div>
