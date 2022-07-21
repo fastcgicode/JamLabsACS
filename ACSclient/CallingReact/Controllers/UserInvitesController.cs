@@ -47,7 +47,22 @@ namespace CallingReact.Controllers
                 _context.UserInvites.Add(userinv);
                 _context.SaveChanges();
             }
-            return "{OK}";
+            return NoContent();
+        }
+
+        // GET: api/UserInvites/update
+        [HttpGet("update/{username}/{connectionId}")]
+        public ActionResult<string> UserUpdate(string username, string connectionId)
+        {
+            var userInvites = from userinvite in _context.UserInvites
+                              where userinvite.userName == username
+                              select userinvite;
+            foreach (UserInvite i in userInvites.ToList())
+            {
+                i.connectionId=connectionId;
+            }
+            _context.SaveChanges();
+            return NoContent();
         }
 
         // GET: api/UserInvites
@@ -62,7 +77,7 @@ namespace CallingReact.Controllers
                 _context.UserInvites.Remove(i);
             }
             _context.SaveChanges();
-            return "OK";
+            return NoContent();
         }
 
         // GET: api/UserInvites
@@ -70,8 +85,8 @@ namespace CallingReact.Controllers
         public ActionResult<string> Invite(string username, string name, string invitedUser, string groupId)
         {
             var userInvites = from userinvite in _context.UserInvites
-                          where userinvite.userName == username && userinvite.invitedUser == invitedUser
-                          select userinvite;
+                              where userinvite.userName == username && userinvite.invitedUser == invitedUser
+                              select userinvite;
 
             if (userInvites.ToList().Count > 0)
             {
@@ -90,7 +105,7 @@ namespace CallingReact.Controllers
             }
 
             _context.SaveChanges();
-            return "OK";
+            return NoContent();
         }
     }
 }

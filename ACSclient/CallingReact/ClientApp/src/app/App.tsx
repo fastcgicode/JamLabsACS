@@ -18,6 +18,7 @@ import { useSwitchableFluentTheme } from './theming/SwitchableFluentThemeProvide
 import { v1 as generateGUID } from 'uuid';
 import './App.css'
 import { createAutoRefreshingCredential } from './utils/credential';
+import { group } from 'console';
 
 initializeIcons();
 
@@ -53,7 +54,8 @@ const App = (props: AppProps): JSX.Element => {
         locator: { groupId: groupId }
       });
       adapter.on('callEnded', () => {
-        console.log("");
+        setGroupId(generateGUID);
+        setGroupId(group_id);
       });
       adapter.on('error', (e) => {
         console.log('Adapter error event:', e);
@@ -71,7 +73,6 @@ const App = (props: AppProps): JSX.Element => {
   window.addEventListener("beforeunload", function (e) {
     userUnavailableHandler(userName);
   }, false);
-  //////userAvailableHandler(username, shortname);
 
   function filterUsersList(userslist, username) {
     let list = [];
@@ -134,10 +135,18 @@ const App = (props: AppProps): JSX.Element => {
                   </div>
                   <div className='participant-item'>
                     <PrimaryButton
+                      text="Invite"
+                      onClick={() => {
+                        inviteHandler(userName, shortname, listitem.userName, groupId);
+                      }} />
+                  </div>
+                  <div className='participant-item'>
+                    <PrimaryButton
                       disabled={!listitem.groupId}
                       text="Join"
                       onClick={() => {
-                        setGroupId(listitem.groupId)
+                        setGroupId(listitem.groupId);
+                        adapter.joinCall();
                       }}
                     />
                   </div>

@@ -11,7 +11,7 @@ import Button from "react-bootstrap/Button";
 import * as signalR from "@microsoft/signalr";
 import { msalConfig } from "./authConfig";
 import { GetAcsToken, CreateOrGetACSUser } from './acsAuthApiCaller';
-import { CallUserInvites, CallAvailable, CallUnavailable, CallInvite } from './app/api';
+import { CallUserInvites, CallAvailable, CallUnavailable, CallInvite, CallUpdateUser } from './app/api';
 import { createGroupId, getGroupIdFromUrl, navigateToHomePage, fetchTokenResponse } from './app/utils/AppUtils';
 import { PageLayout } from "./components/Msal/PageLayout";
 import { SwitchableFluentThemeProvider } from './app/theming/SwitchableFluentThemeProvider';
@@ -48,11 +48,12 @@ const ProfileContent = () => {
       });
   }
   async function RequestProfileData() {
-    connection.on("inviteReceived", (user: string, from: string, groupId: string) => {
+    connection.on("inviteReceived", (invitedUser: string, user: string, groupId: string) => {
       updateAvailableUsers();
-      setShow(true); setShowMessage(`Invitation from ${from}`);
+      setShow(true); setShowMessage(`Invitation from ${user}`);
     });
-    connection.on("availableReceived", (user: string) => {
+    connection.on("availableReceived", (user: string, connectionId: string) => {
+      CallUpdateUser(user, connectionId);
       updateAvailableUsers();
       setShow(true); setShowMessage(user + ' is available');
     });

@@ -24,6 +24,19 @@ export async function CallAvailable(username: string, name: string) {
     .catch((error) => console.log(error));
 }
 
+export async function CallUpdateUser(username: string, connectionId: string) {
+  const headers = new Headers();
+
+  const options = {
+    method: 'GET',
+    headers: headers
+  };
+
+  return await fetch('/api/UserInvites/update/' + username + '/' + connectionId, options)
+    .then((response) => response.json())
+    .catch((error) => console.log(error));
+}
+
 export async function CallUnavailable(username: string) {
   const headers = new Headers();
 
