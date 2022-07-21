@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { GroupLocator } from '@azure/communication-calling';
-import { CommunicationUserIdentifier } from '@azure/communication-common';
 import {
   CallAdapter,
   CallAdapterState,
@@ -13,12 +11,12 @@ import {
 } from '@azure/communication-react';
 import { initializeIcons, PersonaPresence, Spinner, PrimaryButton, Stack, Text, Toggle } from '@fluentui/react';
 import React, { useEffect, useState, useRef } from 'react';
-import { navigateToHomePage } from './utils/AppUtils';
 import { useSwitchableFluentTheme } from './theming/SwitchableFluentThemeProvider';
 import { v1 as generateGUID } from 'uuid';
 import './App.css'
+import Toast from 'react-bootstrap/Toast';
+import ToastContainer from 'react-bootstrap/ToastContainer';
 import { createAutoRefreshingCredential } from './utils/credential';
-import { group } from 'console';
 
 initializeIcons();
 
@@ -33,9 +31,12 @@ export interface AppProps {
   inviteHandler(username: string, shortname: string, invitedUser: string, groupId: string): void;
   updateHandler(): void;
   loggedUsers: any[];
+  showInvite: boolean;
+  showInviteUser: string;
+  showInviteGroupId: string;
 }
 const App = (props: AppProps): JSX.Element => {
-  const { acsID, acsToken, username, name, group_id, userAvailableHandler, userUnavailableHandler, inviteHandler, updateHandler, loggedUsers } = props;
+  const { showInviteUser, showInviteGroupId, showInvite, acsID, acsToken, username, name, group_id, userAvailableHandler, userUnavailableHandler, inviteHandler, updateHandler, loggedUsers } = props;
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [adapter, setAdapter] = useState<CallAdapter>();
   const [userName, setUserName] = useState<string>(username);
@@ -128,22 +129,22 @@ const App = (props: AppProps): JSX.Element => {
                   <div className='participant-item'>
                     <ParticipantItem key={generateGUID()}
                       onClick={() => {
-                        inviteHandler(userName, shortname, listitem.userName, groupId);
                       }}
                       displayName={listitem.name}
                       presence={PersonaPresence.online} />
                   </div>
                   <div className='participant-item'>
                     <PrimaryButton
-                      text="Invite"
+                      text="Invite to call"
                       onClick={() => {
                         inviteHandler(userName, shortname, listitem.userName, groupId);
+                        adapter.joinCall();
                       }} />
                   </div>
                   <div className='participant-item'>
                     <PrimaryButton
                       disabled={!listitem.groupId}
-                      text="Join"
+                      text="Join call"
                       onClick={() => {
                         setGroupId(listitem.groupId);
                         adapter.joinCall();
@@ -156,6 +157,22 @@ const App = (props: AppProps): JSX.Element => {
           </div>
         </Stack>
       </Stack>
+      <ToastContainer position="middle-center">
+        <Toast onClose={() => { updateHandler(); }} show={showInvite} bg="warning">
+          <Toast.Header>Call from {showInviteUser}
+          </Toast.Header>
+          <Toast.Body>
+            <PrimaryButton
+              text="Join call"
+              onClick={() => {
+                setGroupId(showInviteGroupId);
+                updateHandler();
+                adapter.joinCall();
+              }}
+            />
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </div>
   );
 }

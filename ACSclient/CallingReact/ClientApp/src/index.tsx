@@ -36,7 +36,10 @@ const ProfileContent = () => {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [show, setShow] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [showMessage, setShowMessage] = useState('');
+  const [showInviteUser, setShowInviteUser] = useState('');
+  const [showInviteGroupId, setShowInviteGroupId] = useState('');
   const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
   connection.start().catch((err) => {
     setShow(true); setShowMessage(err);
@@ -50,7 +53,7 @@ const ProfileContent = () => {
   async function RequestProfileData() {
     connection.on("inviteReceived", (invitedUser: string, user: string, groupId: string) => {
       updateAvailableUsers();
-      setShow(true); setShowMessage(`Invitation from ${user}`);
+      setShowInvite(true); setShowInviteUser(user); setShowInviteGroupId(groupId);
     });
     connection.on("availableReceived", (user: string, connectionId: string) => {
       CallUpdateUser(user, connectionId);
@@ -77,7 +80,7 @@ const ProfileContent = () => {
             await connection.send("available", response.account.username, accounts[0].name);
           });
         }
-        if (mode == "prod") {
+        if (mode != "prod") {
           CreateOrGetACSUser(response.accessToken)
             .then(() => {
               GetAcsToken(response.accessToken)
@@ -114,14 +117,17 @@ const ProfileContent = () => {
             });
           }}
           inviteHandler={async (username: string, name: string, invitedUser: string, groupId: string) => {
-            CallInvite(username, name, invitedUser, groupId).then(async () => {
+            ///CallInvite(username, name, invitedUser, groupId).then(async () => {
               await connection.send("invite", invitedUser, name, username, callLocator.groupId);
-            });
+            ///});
           }}
           updateHandler={() => {
-            updateAvailableUsers();
+            setShowInvite(false);
           }}
-          loggedUsers={loggedUsers} />
+          loggedUsers={loggedUsers}
+          showInvite={showInvite} 
+          showInviteUser={showInviteUser}
+          showInviteGroupId={showInviteGroupId}/>
         <ToastContainer position="bottom-start">
           <Toast onClose={() => setShow(false)} show={show} delay={3000} autohide bg="primary">
             <Toast.Body>{showMessage}</Toast.Body>
