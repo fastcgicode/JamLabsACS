@@ -38,11 +38,14 @@ const ProfileContent = () => {
   const [show, setShow] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showMessage, setShowMessage] = useState('');
+  const [showException, setShowException] = useState(false);
+  const [exceptionText, setExceptionText] = useState('');
   const [showInviteUser, setShowInviteUser] = useState('');
   const [showInviteGroupId, setShowInviteGroupId] = useState('');
   const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
   connection.start().catch((err) => {
-    setShow(true); setShowMessage(err);
+    setShowException(true);
+    setExceptionText(err);
   });
   const updateAvailableUsers = () => {
     CallUserInvites().then(
@@ -89,7 +92,10 @@ const ProfileContent = () => {
                   setId(message.user.id);
                 });
             })
-            .catch((error) => console.log(error));
+            .catch((error) => {
+              setShowException(true);
+              setExceptionText(error);
+            });
         } else {
           try {
             fetchTokenResponse().then(({ token, user }) => {
@@ -97,7 +103,8 @@ const ProfileContent = () => {
               setId(user.communicationUserId);
             });
           } catch (e) {
-            console.error(e);
+            setShowException(true);
+            setExceptionText(e);
           }
         }
       });
@@ -118,19 +125,26 @@ const ProfileContent = () => {
           }}
           inviteHandler={async (username: string, name: string, invitedUser: string, groupId: string) => {
             ///CallInvite(username, name, invitedUser, groupId).then(async () => {
-              await connection.send("invite", invitedUser, name, username, callLocator.groupId);
+            await connection.send("invite", invitedUser, name, username, callLocator.groupId);
             ///});
           }}
           updateHandler={() => {
             setShowInvite(false);
           }}
           loggedUsers={loggedUsers}
-          showInvite={showInvite} 
+          showInvite={showInvite}
           showInviteUser={showInviteUser}
-          showInviteGroupId={showInviteGroupId}/>
+          showInviteGroupId={showInviteGroupId} />
         <ToastContainer position="bottom-start">
           <Toast onClose={() => setShow(false)} show={show} delay={3000} autohide bg="primary">
             <Toast.Body>{showMessage}</Toast.Body>
+          </Toast>
+        </ToastContainer>
+        <ToastContainer position="bottom-start">
+          <Toast onClose={() => setShowException(false)} show={showException} delay={3000} autohide bg="primary">
+            <Toast.Header>Runtime Error
+            </Toast.Header>
+            <Toast.Body>{exceptionText}</Toast.Body>
           </Toast>
         </ToastContainer>
       </>

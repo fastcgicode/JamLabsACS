@@ -42,7 +42,7 @@ const App = (props: AppProps): JSX.Element => {
   const [userName, setUserName] = useState<string>(username);
   const [shortname, setName] = useState<string>(name);
   const [groupId, setGroupId] = useState<string>(group_id);
-  const [inLobby, setInLobby] = useState<boolean>(false);
+  const [showUsers, setShowUsers] = useState<boolean>(false);
   const userId = { communicationUserId: acsID };
   const displayName = username;
   const callIdRef = useRef<string>();
@@ -58,16 +58,16 @@ const App = (props: AppProps): JSX.Element => {
       adapter.on('callEnded', () => {
         setGroupId(generateGUID);
         setGroupId(group_id);
-      }); adapter.onStateChange
+      });
       adapter.on('error', (e) => {
         console.log('Adapter error event:', e);
       });
       adapter.onStateChange((state: CallAdapterState) => {
         callIdRef.current = state?.call?.id;
-        if (state.page == 'lobby' || state.page == 'call') {
-          setInLobby(true);
+        if (state.page != "configuration") {///state.page == 'lobby' || state.page == 'call' || state.page == 'leftCall') {
+          setShowUsers(true);
         } else {
-          setInLobby(false)
+          setShowUsers(false)
         }
       });
       setAdapter(adapter);
@@ -126,8 +126,8 @@ const App = (props: AppProps): JSX.Element => {
             callInvitationUrl={window.location.href}
             formFactor='desktop' />
         </Stack>
-        <Stack verticalFill disableShrink hidden={!inLobby}>
-          <div className='solid-white'>
+        <Stack verticalFill disableShrink hidden={!showUsers}>
+          <div className='solid-white'>{groupId}
             <div className='participant-title'>Users online:</div>
             {
               filterUsersList(loggedUsers, userName).map(listitem => (
@@ -139,15 +139,14 @@ const App = (props: AppProps): JSX.Element => {
                       displayName={listitem.name}
                       presence={PersonaPresence.online} />
                   </div>
-                  <div className='participant-item'>
+                  <div className='participant-item right-align'>
                     <PrimaryButton
                       text="Invite to call"
                       onClick={() => {
                         inviteHandler(userName, shortname, listitem.userName, groupId);
-                        adapter.joinCall();
                       }} />
                   </div>
-                  <div className='participant-item'>
+                  <div className='participant-item right-align'>
                     <PrimaryButton
                       disabled={!listitem.groupId}
                       text="Join call"
@@ -164,18 +163,20 @@ const App = (props: AppProps): JSX.Element => {
         </Stack>
       </Stack>
       <ToastContainer position="middle-center">
-        <Toast onClose={() => { updateHandler(); }} show={showInvite} bg="warning">
+        <Toast onClose={() => { updateHandler(); }} show={showInvite} bg="primary">
           <Toast.Header>Call from {showInviteUser}
           </Toast.Header>
           <Toast.Body>
-            <PrimaryButton
-              text="Join call"
-              onClick={() => {
-                setGroupId(showInviteGroupId);
-                updateHandler();
-                adapter.joinCall();
-              }}
-            />
+            <div className="center-align">
+              <PrimaryButton
+                text="Join call"
+                onClick={() => {
+                  setGroupId(showInviteGroupId);
+                  updateHandler();
+                  adapter.joinCall();
+                }}
+              /><div>{showInviteGroupId}</div>
+            </div>
           </Toast.Body>
         </Toast>
       </ToastContainer>

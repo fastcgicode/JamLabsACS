@@ -17,14 +17,22 @@
     justify-content: left !important;
 }
 
+.center-align{
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .participant-row {
     display: block;
     width: 100%;
+    padding: 3px;
+    background: rgb(57, 56, 55);
 }
 
 .participant-item {
     display: inline-block;
-    width: 33%;
+    width: 30%;
 }
 
 .participant-title {
