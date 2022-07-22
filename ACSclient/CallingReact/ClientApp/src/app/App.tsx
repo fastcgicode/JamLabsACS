@@ -42,6 +42,7 @@ const App = (props: AppProps): JSX.Element => {
   const [userName, setUserName] = useState<string>(username);
   const [shortname, setName] = useState<string>(name);
   const [groupId, setGroupId] = useState<string>(group_id);
+  const [inLobby, setInLobby] = useState<boolean>(false);
   const userId = { communicationUserId: acsID };
   const displayName = username;
   const callIdRef = useRef<string>();
@@ -57,12 +58,17 @@ const App = (props: AppProps): JSX.Element => {
       adapter.on('callEnded', () => {
         setGroupId(generateGUID);
         setGroupId(group_id);
-      });
+      }); adapter.onStateChange
       adapter.on('error', (e) => {
         console.log('Adapter error event:', e);
       });
       adapter.onStateChange((state: CallAdapterState) => {
         callIdRef.current = state?.call?.id;
+        if (state.page == 'lobby' || state.page == 'call') {
+          setInLobby(true);
+        } else {
+          setInLobby(false)
+        }
       });
       setAdapter(adapter);
       adapterRef.current = adapter;
@@ -120,7 +126,7 @@ const App = (props: AppProps): JSX.Element => {
             callInvitationUrl={window.location.href}
             formFactor='desktop' />
         </Stack>
-        <Stack verticalFill disableShrink>
+        <Stack verticalFill disableShrink hidden={!inLobby}>
           <div className='solid-white'>
             <div className='participant-title'>Users online:</div>
             {
