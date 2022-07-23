@@ -25,24 +25,43 @@ export interface AppProps {
   acsID: string;
   acsToken: string;
   username: string;
-  group_id: string;
-  userAvailableHandler(userName: string, name: string): void;
+  groupId: string;
+  usersGroupId: string;
+  connectionId: string;
+  userAvailableHandler(userName: string, name: string, connectionId: string): void;
   userUnavailableHandler(userName: string): void;
   inviteHandler(username: string, shortname: string, invitedUser: string, groupId: string): void;
-  updateHandler(): void;
+  hideInviteHandler(): void;
+  updateGroupIdHandler(groupId): void;
+  updateInCallHandler(username: string, shortname: string, isInCall: string): void;
   loggedUsers: any[];
   showInvite: boolean;
   showInviteUser: string;
   showInviteGroupId: string;
 }
 const App = (props: AppProps): JSX.Element => {
-  const { showInviteUser, showInviteGroupId, showInvite, acsID, acsToken, username, name, group_id, userAvailableHandler, userUnavailableHandler, inviteHandler, updateHandler, loggedUsers } = props;
+  const {
+    showInviteUser,
+    showInviteGroupId,
+    showInvite,
+    acsID,
+    acsToken,
+    username,
+    name,
+    groupId,
+    usersGroupId,
+    connectionId,
+    userAvailableHandler,
+    userUnavailableHandler,
+    inviteHandler,
+    hideInviteHandler,
+    updateGroupIdHandler,
+    updateInCallHandler,
+    loggedUsers } = props;
   const { currentTheme, currentRtl } = useSwitchableFluentTheme();
   const [adapter, setAdapter] = useState<CallAdapter>();
   const [userName, setUserName] = useState<string>(username);
   const [shortname, setName] = useState<string>(name);
-  const [groupId, setGroupId] = useState<string>(group_id);
-  const [showUsers, setShowUsers] = useState<boolean>(false);
   const userId = { communicationUserId: acsID };
   const displayName = username;
   const callIdRef = useRef<string>();
@@ -56,31 +75,32 @@ const App = (props: AppProps): JSX.Element => {
         locator: { groupId: groupId }
       });
       adapter.on('callEnded', () => {
-        setGroupId(generateGUID);
-        setGroupId(group_id);
+        updateGroupIdHandler(usersGroupId);
+        setAdapter(adapter);
       });
       adapter.on('error', (e) => {
         console.log('Adapter error event:', e);
       });
       adapter.onStateChange((state: CallAdapterState) => {
         callIdRef.current = state?.call?.id;
-        if (state.page != "configuration") {///state.page == 'lobby' || state.page == 'call' || state.page == 'leftCall') {
-          setShowUsers(true);
+        if (state.page != "configuration") {///state.page == 'leftCall'
+          updateInCallHandler(username, shortname, "busy");
         } else {
-          setShowUsers(false)
+          updateInCallHandler(username, shortname, "online");
         }
+        ///if (state.page == 'lobby' || state.page == 'call') {
       });
       setAdapter(adapter);
+      window.addEventListener("beforeunload", function (e) {
+        userUnavailableHandler(userName);
+      }, false);
+      userAvailableHandler(userName, shortname, connectionId);
       adapterRef.current = adapter;
     })();
     return () => {
       adapterRef?.current?.dispose();
     };
   }, [groupId]);
-  window.addEventListener("beforeunload", function (e) {
-    userUnavailableHandler(userName);
-  }, false);
-
   function filterUsersList(userslist, username) {
     let list = [];
     for (var c = 0; c < userslist.length; c++) {
@@ -112,7 +132,7 @@ const App = (props: AppProps): JSX.Element => {
             onChange={
               (ev: React.MouseEvent<HTMLElement>, checked: boolean) => {
                 if (checked)
-                  userAvailableHandler(userName, shortname);
+                  userAvailableHandler(userName, shortname, connectionId);
                 else
                   userUnavailableHandler(userName);
               }}>
@@ -126,24 +146,23 @@ const App = (props: AppProps): JSX.Element => {
             callInvitationUrl={window.location.href}
             formFactor='desktop' />
         </Stack>
-        <Stack verticalFill disableShrink hidden={!showUsers}>
-          <div className='solid-white'>{groupId}
+        <Stack verticalFill disableShrink>
+          <div className='solid-white'>
             <div className='participant-title'>Users online:</div>
             {
               filterUsersList(loggedUsers, userName).map(listitem => (
                 <div className='participant-row'>
                   <div className='participant-item'>
                     <ParticipantItem key={generateGUID()}
-                      onClick={() => {
-                      }}
                       displayName={listitem.name}
-                      presence={PersonaPresence.online} />
+                      presence={listitem.isInCall == "online" ? PersonaPresence.online : PersonaPresence.busy} />
                   </div>
                   <div className='participant-item right-align'>
                     <PrimaryButton
                       text="Invite to call"
                       onClick={() => {
                         inviteHandler(userName, shortname, listitem.userName, groupId);
+                        adapter.joinCall();
                       }} />
                   </div>
                   <div className='participant-item right-align'>
@@ -151,7 +170,7 @@ const App = (props: AppProps): JSX.Element => {
                       disabled={!listitem.groupId}
                       text="Join call"
                       onClick={() => {
-                        setGroupId(listitem.groupId);
+                        updateGroupIdHandler(listitem.groupId);
                         adapter.joinCall();
                       }}
                     />
@@ -162,20 +181,10 @@ const App = (props: AppProps): JSX.Element => {
           </div>
         </Stack>
       </Stack>
-      <ToastContainer position="middle-center">
-        <Toast onClose={() => { updateHandler(); }} show={showInvite} bg="primary">
-          <Toast.Header>Call from {showInviteUser}
-          </Toast.Header>
+      <ToastContainer position="middle-start">
+        <Toast onClose={() => { hideInviteHandler(); }} show={showInvite} delay={3000} autohide bg="primary">
           <Toast.Body>
-            <div className="center-align">
-              <PrimaryButton
-                text="Join call"
-                onClick={() => {
-                  setGroupId(showInviteGroupId);
-                  updateHandler();
-                  adapter.joinCall();
-                }}
-              /><div>{showInviteGroupId}</div>
+            <div className="center-align">Call from {showInviteUser}
             </div>
           </Toast.Body>
         </Toast>

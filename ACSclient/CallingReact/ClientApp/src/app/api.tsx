@@ -11,7 +11,7 @@ export async function CallUserInvites() {
     .catch((error) => console.log(error));
 }
 
-export async function CallAvailable(username: string, name: string) {
+export async function CallAvailable(username: string, name: string, connectionId: string) {
   const headers = new Headers();
 
   const options = {
@@ -19,20 +19,7 @@ export async function CallAvailable(username: string, name: string) {
     headers: headers
   };
 
-  return await fetch('/api/UserInvites/' + username + '/' + name, options)
-    .then((response) => response.json())
-    .catch((error) => console.log(error));
-}
-
-export async function CallUpdateUser(username: string, connectionId: string) {
-  const headers = new Headers();
-
-  const options = {
-    method: 'GET',
-    headers: headers
-  };
-
-  return await fetch('/api/UserInvites/update/' + username + '/' + connectionId, options)
+  return await fetch('/api/UserInvites/available/' + username + '/' + name+ '/' + connectionId, options)
     .then((response) => response.json())
     .catch((error) => console.log(error));
 }
@@ -58,7 +45,20 @@ export async function CallInvite(username: string, name: string, invitedUser: st
     headers: headers
   };
 
-  return await fetch('/api/UserInvites/' + username + '/' + name+ '/' + invitedUser+ '/' + groupId, options)
+  return await fetch('/api/UserInvites/' + username + '/' + name + '/' + invitedUser + '/' + groupId, options)
+    .then((response) => response.json())
+    .catch((error) => console.log(error));
+}
+
+export async function CallUpdateInCall(username: string, isInCall: string) {
+  const headers = new Headers();
+
+  const options = {
+    method: 'GET',
+    headers: headers
+  };
+
+  return await fetch('/api/UserInvites/incall/' + username + '/' + isInCall, options)
     .then((response) => response.json())
     .catch((error) => console.log(error));
 }

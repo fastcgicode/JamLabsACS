@@ -11,7 +11,7 @@ import Button from "react-bootstrap/Button";
 import * as signalR from "@microsoft/signalr";
 import { msalConfig } from "./authConfig";
 import { GetAcsToken, CreateOrGetACSUser } from './acsAuthApiCaller';
-import { CallUserInvites, CallAvailable, CallUnavailable, CallInvite, CallUpdateUser } from './app/api';
+import { CallUserInvites, CallAvailable, CallUnavailable, CallInvite, CallUpdateInCall } from './app/api';
 import { createGroupId, getGroupIdFromUrl, navigateToHomePage, fetchTokenResponse } from './app/utils/AppUtils';
 import { PageLayout } from "./components/Msal/PageLayout";
 import { SwitchableFluentThemeProvider } from './app/theming/SwitchableFluentThemeProvider';
@@ -24,7 +24,9 @@ export interface AcsUser {
   userName: string;
   name: string;
   invitedUser: string;
+  connectionId: string;
   groupId: string;
+  isInCall: boolean;
 }
 const msalInstance = new PublicClientApplication(msalConfig);
 const ProfileContent = () => {
@@ -33,6 +35,8 @@ const ProfileContent = () => {
   const [callLocator, setCallLocator] = useState<GroupLocator>(getGroupIdFromUrl() || createGroupId());
   const [acsID, setId] = useState('');
   const [acsToken, setAcsToken] = useState('');
+  const [usersGroupId, setUsersGroupId] = useState(callLocator.groupId);
+  const [groupId, setGroupId] = useState(callLocator.groupId);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [show, setShow] = useState(false);
@@ -42,6 +46,7 @@ const ProfileContent = () => {
   const [exceptionText, setExceptionText] = useState('');
   const [showInviteUser, setShowInviteUser] = useState('');
   const [showInviteGroupId, setShowInviteGroupId] = useState('');
+  const [connectionId, setConnectionId] = useState('');
   const connection = new signalR.HubConnectionBuilder().withUrl("/hub").build();
   connection.start().catch((err) => {
     setShowException(true);
@@ -57,11 +62,14 @@ const ProfileContent = () => {
     connection.on("inviteReceived", (invitedUser: string, user: string, groupId: string) => {
       updateAvailableUsers();
       setShowInvite(true); setShowInviteUser(user); setShowInviteGroupId(groupId);
+      connection.send("update");
     });
-    connection.on("availableReceived", (user: string, connectionId: string) => {
-      CallUpdateUser(user, connectionId);
+    connection.on("availableReceived", (user: string) => {
       updateAvailableUsers();
       setShow(true); setShowMessage(user + ' is available');
+    });
+    connection.on("updateReceived", () => {
+      updateAvailableUsers();
     });
     connection.on("unavailableReceived", (user: string) => {
       updateAvailableUsers();
@@ -79,9 +87,10 @@ const ProfileContent = () => {
         if (response.account) {
           setUsername(response.account.username);
           setName(accounts[0].name);
-          CallAvailable(response.account.username, accounts[0].name).then(async () => {
-            await connection.send("available", response.account.username, accounts[0].name);
-          });
+          ///CallAvailable(response.account.username, accounts[0].name, connection.connectionId).then(async () => {
+          ///  await connection.send("available", response.account.username, accounts[0].name);
+          ///});
+          setConnectionId(connection.connectionId);
         }
         if (mode == "prod") {
           CreateOrGetACSUser(response.accessToken)
@@ -112,9 +121,16 @@ const ProfileContent = () => {
   if (acsID) {
     return (
       <>
-        <App acsID={acsID} acsToken={acsToken} username={username} name={name} group_id={callLocator.groupId}
-          userAvailableHandler={async (username, name) => {
-            CallAvailable(username, name).then(async () => {
+        <App
+          acsID={acsID}
+          acsToken={acsToken}
+          username={username}
+          name={name}
+          groupId={groupId}
+          usersGroupId={usersGroupId}
+          connectionId={connectionId}
+          userAvailableHandler={async (username, name, connectionId) => {
+            CallAvailable(username, name, connectionId).then(async () => {
               await connection.send("available", username, name);
             });
           }}
@@ -124,12 +140,20 @@ const ProfileContent = () => {
             });
           }}
           inviteHandler={async (username: string, name: string, invitedUser: string, groupId: string) => {
-            ///CallInvite(username, name, invitedUser, groupId).then(async () => {
-            await connection.send("invite", invitedUser, name, username, callLocator.groupId);
-            ///});
+            CallInvite(username, name, invitedUser, groupId).then(async () => {
+              await connection.send("invite", invitedUser, name, username, groupId);
+            });
           }}
-          updateHandler={() => {
+          hideInviteHandler={() => {
             setShowInvite(false);
+          }}
+          updateGroupIdHandler={(groupId) => {
+            setGroupId(groupId);
+          }}
+          updateInCallHandler={(username, name, isInCall) => {
+            CallUpdateInCall(username, isInCall).then(async () => {
+              await connection.send("update");
+            });
           }}
           loggedUsers={loggedUsers}
           showInvite={showInvite}
@@ -141,7 +165,7 @@ const ProfileContent = () => {
           </Toast>
         </ToastContainer>
         <ToastContainer position="bottom-start">
-          <Toast onClose={() => setShowException(false)} show={showException} delay={3000} autohide bg="primary">
+          <Toast onClose={() => setShowException(false)} show={showException} bg="primary">
             <Toast.Header>Runtime Error
             </Toast.Header>
             <Toast.Body>{exceptionText}</Toast.Body>
@@ -153,6 +177,13 @@ const ProfileContent = () => {
     return (
       <>
         <Button onClick={RequestProfileData}>Connect to Communication Server</Button>
+        <ToastContainer position="bottom-start">
+          <Toast onClose={() => setShowException(false)} show={showException} bg="primary">
+            <Toast.Header>Runtime Error
+            </Toast.Header>
+            <Toast.Body>{exceptionText}</Toast.Body>
+          </Toast>
+        </ToastContainer>
       </>
     );
   }

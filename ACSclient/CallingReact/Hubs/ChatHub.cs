@@ -26,7 +26,11 @@ namespace CallingReact.Hubs
         }
         public async Task available(string username, string name)
         {
-            await Clients.All.SendAsync("availableReceived", username, Context.ConnectionId);
+            await Clients.All.SendAsync("availableReceived", username);
+        }
+        public async Task update()
+        {
+            await Clients.All.SendAsync("updateReceived");
         }
         public async Task unavailable(string username)
         {

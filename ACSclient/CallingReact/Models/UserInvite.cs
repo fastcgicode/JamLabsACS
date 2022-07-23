@@ -13,6 +13,7 @@ namespace CallingReact.Models
         public string name { get; set; }
         public string invitedUser { get; set; }
         public string groupId { get; set; }
+        public string isInCall { get; set; }
         public string connectionId { get; set; }
     }
 }

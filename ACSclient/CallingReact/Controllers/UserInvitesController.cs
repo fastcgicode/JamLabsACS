@@ -30,8 +30,8 @@ namespace CallingReact.Controllers
         }
 
         // GET: api/UserInvites
-        [HttpGet("{username}/{name}")]
-        public ActionResult<string> Available(string username, string name)
+        [HttpGet("available/{username}/{name}/{connectionId}")]
+        public ActionResult<string> Available(string username, string name, string connectionId)
         {
             var userInvites = from userinvite in _context.UserInvites
                               where userinvite.userName == username && userinvite.invitedUser == ""
@@ -43,25 +43,11 @@ namespace CallingReact.Controllers
                 userinv.name = name;
                 userinv.invitedUser = "";
                 userinv.groupId = "";
-                userinv.connectionId = "";
+                userinv.connectionId = connectionId;
+                userinv.isInCall = "online";
                 _context.UserInvites.Add(userinv);
                 _context.SaveChanges();
             }
-            return NoContent();
-        }
-
-        // GET: api/UserInvites/update
-        [HttpGet("update/{username}/{connectionId}")]
-        public ActionResult<string> UserUpdate(string username, string connectionId)
-        {
-            var userInvites = from userinvite in _context.UserInvites
-                              where userinvite.userName == username
-                              select userinvite;
-            foreach (UserInvite i in userInvites.ToList())
-            {
-                i.connectionId=connectionId;
-            }
-            _context.SaveChanges();
             return NoContent();
         }
 
@@ -101,9 +87,25 @@ namespace CallingReact.Controllers
                 userinvite.invitedUser = invitedUser;
                 userinvite.groupId = groupId;
                 userinvite.connectionId = "";
+                userinvite.isInCall = "online";
                 _context.UserInvites.Add(userinvite);
             }
 
+            _context.SaveChanges();
+            return NoContent();
+        }
+
+        // GET: api/UserInvites/update
+        [HttpGet("incall/{username}/{isInCall}")]
+        public ActionResult<string> UpdateInCall(string username, string isInCall)
+        {
+            var userInvites = from userinvite in _context.UserInvites
+                              where userinvite.userName == username
+                              select userinvite;
+            foreach (UserInvite i in userInvites.ToList())
+            {
+                i.isInCall = isInCall;
+            }
             _context.SaveChanges();
             return NoContent();
         }
